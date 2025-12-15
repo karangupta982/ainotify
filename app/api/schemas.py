@@ -27,7 +27,7 @@ class UserOut(BaseModel):
 class ProfilePayload(BaseModel):
     name: str
     title: str
-    email_to: EmailStr
+    email_to: Optional[EmailStr] = None  # Optional: defaults to signup email if not provided
     background: str
     interests: str
     expertise_level: str
@@ -41,3 +41,8 @@ class ChannelsPayload(BaseModel):
 class BillingCheckoutRequest(BaseModel):
     priceId: str
 
+
+class PaymentVerificationRequest(BaseModel):
+    razorpay_payment_id: str
+    razorpay_order_id: str
+    razorpay_signature: str
