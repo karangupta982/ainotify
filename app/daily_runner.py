@@ -186,5 +186,5 @@ def run_daily_pipeline(hours: int = 24, top_n: int = 10) -> dict:
 
 if __name__ == "__main__":
     # Ad-hoc local run with defaults.
-    result = run_daily_pipeline(hours=24, top_n=10)
+    result = run_daily_pipeline(hours=50, top_n=10)
     exit(0 if result["success"] else 1)
