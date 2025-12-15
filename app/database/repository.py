@@ -1,9 +1,13 @@
 """Lightweight data access layer over SQLAlchemy models."""
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Set
 from sqlalchemy.orm import Session
-from .models import YouTubeVideo, OpenAIArticle, AnthropicArticle, Digest
+from sqlalchemy import and_, or_
+from .models import (
+    YouTubeVideo, OpenAIArticle, AnthropicArticle, Digest,
+    UserChannel, UserSubscription, DigestSend, SubscriptionStatus
+)
 from .connection import get_session
 
 
@@ -333,3 +337,231 @@ class Repository:
         )
         self.session.commit()
         return updated
+
+    # User-Channel Operations
+    def upsert_user_channels(self, user_id: str, channel_ids: List[str]) -> int:
+        """Add or update user channels. Returns number of channels added."""
+        # Remove existing channels for this user
+        self.session.query(UserChannel).filter(UserChannel.user_id == user_id).delete()
+        
+        # Add new channels
+        new_channels = [
+            UserChannel(user_id=user_id, channel_id=channel_id)
+            for channel_id in channel_ids
+        ]
+        if new_channels:
+            self.session.add_all(new_channels)
+            self.session.commit()
+        return len(new_channels)
+
+    def get_user_channels(self, user_id: str) -> List[str]:
+        """Get all channel IDs for a specific user."""
+        channels = self.session.query(UserChannel).filter(
+            UserChannel.user_id == user_id
+        ).all()
+        return [c.channel_id for c in channels]
+
+    def get_all_unique_channel_ids(self) -> Set[str]:
+        """Get all unique channel IDs from active users."""
+        channels = self.session.query(UserChannel.channel_id).distinct().all()
+        return {c[0] for c in channels}
+
+    def delete_user_channels(self, user_id: str) -> int:
+        """Delete all channels for a user (when subscription expires)."""
+        deleted = self.session.query(UserChannel).filter(
+            UserChannel.user_id == user_id
+        ).delete()
+        self.session.commit()
+        return deleted
+
+    # Subscription Operations
+    def create_user_subscription(
+        self,
+        user_id: str,
+        status: SubscriptionStatus = SubscriptionStatus.TRIAL,
+        plan: Optional[str] = None,
+        trial_days: int = 2
+    ) -> UserSubscription:
+        """Create a new subscription entry for a user."""
+        now = datetime.now(timezone.utc)
+        trial_expires = now + timedelta(days=trial_days)
+        
+        subscription = UserSubscription(
+            user_id=user_id,
+            subscription_status=status,
+            subscription_plan=plan,
+            trial_started_at=now,
+            subscription_expires_at=trial_expires if status == SubscriptionStatus.TRIAL else None,
+        )
+        self.session.add(subscription)
+        self.session.commit()
+        return subscription
+
+    def get_user_subscription(self, user_id: str) -> Optional[UserSubscription]:
+        """Get subscription for a user."""
+        return self.session.query(UserSubscription).filter(
+            UserSubscription.user_id == user_id
+        ).first()
+
+    def update_subscription(
+        self,
+        user_id: str,
+        status: Optional[SubscriptionStatus] = None,
+        plan: Optional[str] = None,
+        expires_at: Optional[datetime] = None
+    ) -> bool:
+        """Update subscription status and plan."""
+        subscription = self.get_user_subscription(user_id)
+        if not subscription:
+            return False
+        
+        if status:
+            subscription.subscription_status = status
+        if plan is not None:
+            subscription.subscription_plan = plan
+        if expires_at:
+            subscription.subscription_expires_at = expires_at
+        if status == SubscriptionStatus.ACTIVE and not subscription.subscription_started_at:
+            subscription.subscription_started_at = datetime.now(timezone.utc)
+        
+        subscription.updated_at = datetime.now(timezone.utc)
+        self.session.commit()
+        return True
+
+    def get_active_users_with_channels(self) -> List[Dict[str, Any]]:
+        """Get all active users with their channel IDs."""
+        now = datetime.now(timezone.utc)
+        active_subscriptions = self.session.query(UserSubscription).filter(
+            or_(
+                UserSubscription.subscription_status == SubscriptionStatus.ACTIVE,
+                and_(
+                    UserSubscription.subscription_status == SubscriptionStatus.TRIAL,
+                    UserSubscription.subscription_expires_at > now
+                )
+            )
+        ).all()
+        
+        result = []
+        for sub in active_subscriptions:
+            channels = self.get_user_channels(sub.user_id)
+            result.append({
+                "user_id": sub.user_id,
+                "subscription_status": sub.subscription_status.value,
+                "subscription_plan": sub.subscription_plan,
+                "channel_ids": channels,
+            })
+        return result
+
+    def check_subscription_status(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Check if user subscription is active."""
+        subscription = self.get_user_subscription(user_id)
+        if not subscription:
+            return None
+        
+        now = datetime.now(timezone.utc)
+        is_active = (
+            subscription.subscription_status == SubscriptionStatus.ACTIVE or
+            (
+                subscription.subscription_status == SubscriptionStatus.TRIAL and
+                subscription.subscription_expires_at and
+                subscription.subscription_expires_at > now
+            )
+        )
+        
+        return {
+            "user_id": subscription.user_id,
+            "status": subscription.subscription_status.value,
+            "plan": subscription.subscription_plan,
+            "is_active": is_active,
+            "expires_at": subscription.subscription_expires_at.isoformat() if subscription.subscription_expires_at else None,
+        }
+
+    # User-specific Digest Operations
+    def get_recent_digests_for_user(
+        self,
+        user_id: str,
+        channel_ids: List[str],
+        hours: int = 24
+    ) -> List[Dict[str, Any]]:
+        """Get recent digests for a user, filtering YouTube videos by their channels."""
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+        
+        # Get all digests that haven't been sent to this user
+        sent_digest_ids = {
+            ds.digest_id
+            for ds in self.session.query(DigestSend.digest_id).filter(
+                DigestSend.user_id == user_id
+            ).all()
+        }
+        
+        # Get YouTube videos for user's channels
+        if channel_ids:
+            youtube_videos = self.session.query(YouTubeVideo).filter(
+                YouTubeVideo.channel_id.in_(channel_ids)
+            ).all()
+            youtube_video_ids = {v.video_id for v in youtube_videos}
+        else:
+            youtube_video_ids = set()
+        
+        # Get YouTube digests filtered by user's channels
+        youtube_digest_ids = {f"youtube:{vid}" for vid in youtube_video_ids}
+        youtube_digests = []
+        if youtube_digest_ids:
+            youtube_digests = self.session.query(Digest).filter(
+                and_(
+                    Digest.article_type == "youtube",
+                    Digest.created_at >= cutoff_time,
+                    Digest.id.in_(youtube_digest_ids),
+                    ~Digest.id.in_(sent_digest_ids) if sent_digest_ids else True
+                )
+            ).all()
+        
+        # Get OpenAI and Anthropic digests (shared for all users)
+        other_digests = self.session.query(Digest).filter(
+            and_(
+                Digest.article_type.in_(["openai", "anthropic"]),
+                Digest.created_at >= cutoff_time,
+                ~Digest.id.in_(sent_digest_ids) if sent_digest_ids else True
+            )
+        ).all()
+        
+        all_digests = list(youtube_digests) + list(other_digests)
+        
+        return [
+            {
+                "id": d.id,
+                "article_type": d.article_type,
+                "article_id": d.article_id,
+                "url": d.url,
+                "title": d.title,
+                "summary": d.summary,
+                "created_at": d.created_at,
+            }
+            for d in all_digests
+        ]
+
+    def mark_digests_as_sent_for_user(self, user_id: str, digest_ids: List[str]) -> int:
+        """Mark digests as sent for a specific user."""
+        sent_time = datetime.now(timezone.utc)
+        count = 0
+        
+        for digest_id in digest_ids:
+            # Check if already sent
+            existing = self.session.query(DigestSend).filter(
+                and_(
+                    DigestSend.digest_id == digest_id,
+                    DigestSend.user_id == user_id
+                )
+            ).first()
+            
+            if not existing:
+                digest_send = DigestSend(
+                    digest_id=digest_id,
+                    user_id=user_id,
+                    sent_at=sent_time
+                )
+                self.session.add(digest_send)
+                count += 1
+        
+        self.session.commit()
+        return count
