@@ -1,10 +1,16 @@
 import logging
 import os
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import auth, profile, channels, billing
 from app.api.deps import get_mongo
+
+# Load environment variables early so MONGODB_URL and others are available.
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,7 +19,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI Notify API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events."""
+    # Startup
+    db = get_mongo()
+    # simple connectivity check
+    db.command("ping")
+    logger.info("MongoDB connected successfully")
+    yield
+    # Shutdown (if needed in future)
+    logger.info("Shutting down...")
+
+
+app = FastAPI(title="AI Notify API", version="1.0.0", lifespan=lifespan)
 
 origins = [os.getenv("FRONTEND_URL", "http://localhost:3000")]
 app.add_middleware(
@@ -23,14 +43,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def startup_event():
-    db = get_mongo()
-    # simple connectivity check
-    db.command("ping")
-    logger.info("MongoDB connected successfully")
 
 
 @app.get("/api/health")
