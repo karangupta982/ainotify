@@ -25,6 +25,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+questions.txt
+PAYMENT_FIXES.md
+RAZORPAY_FIXES.md
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -39,6 +43,8 @@ explanation.md
 # Unit test / coverage reports
 htmlcov/
 .tox/
+RAZORPAY_SETUP.md
+SETUP.md
 .nox/
 .coverage
 .coverage.*
@@ -54,7 +60,7 @@ cover/
 # Translations
 *.mo
 *.pot
-
+steps_to_run.md
 # Django stuff:
 *.log
 local_settings.py
@@ -64,6 +70,7 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
+QA-CHECKLIST.md
 
 # Scrapy stuff:
 .scrapy
