@@ -30,6 +30,7 @@ jobs:
           python pipeline_main.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           MY_EMAIL: ${{ secrets.MY_EMAIL }}
           APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
