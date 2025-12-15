@@ -50,6 +50,7 @@ SETUP.md
 .coverage.*
 .cache
 nosetests.xml
+db.md
 coverage.xml
 *.cover
 *.py.cover
