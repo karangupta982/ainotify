@@ -40,6 +40,9 @@ def upsert_channels(payload: ChannelsPayload, user=Depends(get_current_user), db
                 detail="Database tables not created. Please run: python -m app.database.create_tables"
             )
         raise
+
+    # return updated list
     
-    return {"success": True}
+    return {"success": True,
+            "channel_ids": payload.channel_ids}
 
