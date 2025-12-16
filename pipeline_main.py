@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Run the pipeline once."""
-    hours = 24
+    hours = 200
     top_n = 10
     
     # Allow overriding defaults via CLI args
