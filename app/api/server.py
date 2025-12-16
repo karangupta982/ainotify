@@ -37,14 +37,23 @@ app = FastAPI(title="AI Notify API", version="1.0.0", lifespan=lifespan)
 
 # origins = ["*"]
 # origins = [os.getenv("FRONTEND_URL", "http://localhost:3000")]
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "https://ainotify.vercel.app",  
+    ],
+    allow_credentials=True,            # ✅ required for cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 @app.get("/api/health")
