@@ -17,7 +17,7 @@ def main(hours: int = 24, top_n: int = 10):
 if __name__ == "__main__":
     import sys
 
-    hours = 24
+    hours = 200
     top_n = 10
 
     # Allow overriding defaults via CLI args to support scheduled/adhoc runs.
