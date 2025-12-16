@@ -27,12 +27,21 @@ def signup(payload: SignupRequest, res: Response, db=Depends(get_mongo)):
     db["users"].insert_one(user_doc)
 
     token = create_token(sub=user_doc["_id"], email=user_doc["email"])
+    # res.set_cookie(
+    #     SESSION_COOKIE_NAME,
+    #     token,
+    #     httponly=True,
+    #     secure=False,
+    #     samesite="lax",
+    #     max_age=7 * 24 * 3600,
+    # )
+
     res.set_cookie(
         SESSION_COOKIE_NAME,
-        token,
+        value=token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,          # REQUIRED for HTTPS
+        samesite="none",      # REQUIRED for cross-site
         max_age=7 * 24 * 3600,
     )
     return user_doc
@@ -45,12 +54,21 @@ def login(payload: LoginRequest, res: Response, db=Depends(get_mongo)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     token = create_token(sub=user["_id"], email=user["email"])
+    # res.set_cookie(
+    #     SESSION_COOKIE_NAME,
+    #     token,
+    #     httponly=True,
+    #     secure=False,
+    #     samesite="lax",
+    #     max_age=7 * 24 * 3600,
+    # )
+
     res.set_cookie(
         SESSION_COOKIE_NAME,
-        token,
+        value=token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,          # REQUIRED for HTTPS
+        samesite="none",      # REQUIRED for cross-site
         max_age=7 * 24 * 3600,
     )
     return user
