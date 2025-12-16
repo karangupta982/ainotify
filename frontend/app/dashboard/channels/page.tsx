@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,32 @@ type Channel = { id: string };
 
 export default function ChannelsPage() {
   const [channels, setChannels] = useState<Channel[]>([
-    { id: "UCawZsQWqfGSbCI5yjkdVkTA" },
+    // { id: "UCawZsQWqfGSbCI5yjkdVkTA" },
   ]);
+
+
+  useEffect(() => {
+    fetchChannels();
+  }, []);
+
+  const fetchChannels = async () => {
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+    try {
+      const res = await fetch(`${BASE_URL}/api/channels`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch channels");
+      }
+      const data = await res.json();
+      console.log("Fetched channels:", data);
+      setChannels(data.channel_ids.map((id: string) => ({ id })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const [input, setInput] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -27,25 +51,40 @@ export default function ChannelsPage() {
   };
 
   const saveChannels = async () => {
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-    setSaving(true);
-    try {
-      const res = await fetch(`${BASE_URL}/api/channels`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ channel_ids: channels.map((c) => c.id) }),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to save channels");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save channels. Please try again.");
-    } finally {
-      setSaving(false);
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+  setSaving(true);
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/channels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        channel_ids: channels.map((c) => c.id),
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to save channels");
     }
-  };
+
+    const data = await res.json(); 
+
+    console.log("API response:", data);
+
+    setChannels(
+      data.channel_ids.map((id: string) => ({ id }))
+    );
+
+    alert("Channels saved successfully!");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save channels. Please try again.");
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <div className="space-y-6">
