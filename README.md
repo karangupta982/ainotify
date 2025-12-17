@@ -1,104 +1,195 @@
 # AI News Aggregator
 
-An intelligent news aggregation system that scrapes AI-related content from multiple sources (YouTube channels, RSS feeds), processes them with LLM-powered summarization, curates personalized digests based on user preferences, and delivers daily email summaries.
+A sophisticated, full-stack AI-powered news aggregation platform featuring multi-agent LLM systems, asynchronous data pipelines, personalized content curation, and automated email delivery. This enterprise-grade project demonstrates advanced backend architecture with complex data processing workflows, scalable database design, and robust API integrations.
 
 ## Overview
 
-This project aggregates AI news from multiple sources:
-- **YouTube Channels**: Scrapes videos and transcripts from configured channels
-- **RSS Feeds**: Monitors OpenAI and Anthropic blog posts (scraping only - uses Groq API for processing)
-- **Processing**: Converts content to markdown, generates summaries, and creates digests
-- **Curation**: Ranks articles by relevance to user profile using LLM
-- **Delivery**: Sends personalized daily email digests
+This comprehensive project implements a complete AI news ecosystem with the following advanced capabilities:
+- **Multi-Source Data Aggregation**: Concurrent scraping from YouTube channels and RSS feeds with rate limiting and error resilience
+- **LLM-Powered Content Processing**: Multi-agent system using Groq API for intelligent summarization, curation, and personalization
+- **Asynchronous Pipeline Orchestration**: Complex workflow management with dependency handling and failure recovery
+- **Full-Stack Web Application**: FastAPI backend with RESTful APIs, Next.js frontend with modern UI/UX
+- **Personalized User Experience**: Profile-based content ranking using advanced NLP techniques
+- **Production-Ready Deployment**: Containerized deployment with cron scheduling and environment-aware configuration
+- **Scalable Database Architecture**: Hybrid PostgreSQL/MongoDB setup with optimized queries and indexing
+
+---
+
+# Demo
+
+[![Img1](./frontend//app//assets/ainotifyimg1.jpeg)](https://ainotify.vercel.app)
+
+[![Img2](./frontend//app//assets/ainotifyimg2.jpeg)](https://ainotify.vercel.app)
 
 ## Architecture
 
 ```mermaid
-graph LR
-    A[Sources<br/>YouTube<br/>RSS Feeds] --> B[Scrapers<br/>BaseScraper<br/>Registry Pattern]
-    B --> C[(Database<br/>PostgreSQL)]
-    C --> D[Processors<br/>Markdown<br/>Transcripts<br/>Digests]
+graph TD
+    A[Data Sources<br/>YouTube Channels<br/>RSS Feeds] --> B[Scrapers Module<br/>Registry Pattern<br/>BaseScraper]
+    B --> C[(Database Layer<br/>PostgreSQL + MongoDB<br/>SQLAlchemy ORM)]
+    C --> D[Processing Services<br/>Content Conversion<br/>Transcript Extraction<br/>LLM Summarization]
     D --> C
-    C --> E[Curator<br/>LLM Ranking]
-    E --> F[Email<br/>Personalized Digest]
-    F --> G[Delivery<br/>Gmail SMTP]
+    C --> E[Multi-Agent LLM System<br/>Curator Agent<br/>Digest Agent<br/>Email Agent]
+    E --> F[Email Service<br/>Personalized Digests<br/>SMTP Delivery]
+    C --> G[FastAPI Backend<br/>RESTful APIs<br/>Authentication & Security<br/>Billing Integration]
+    G --> H[Next.js Frontend<br/>Dashboard UI<br/>User Management<br/>Real-time Updates]
+    I[Pipeline Scheduler<br/>Cron Orchestration<br/>Async Task Management] --> B
+    I --> D
+    I --> E
+    I --> F
     
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
-    style D fill:#fff4e1
-    style E fill:#f3e5f5
-    style F fill:#f3e5f5
-    style G fill:#ffe1f5
+    style A fill:#e1f5ff,color:#000,stroke:#000,stroke-width:1px
+    style B fill:#fff4e1,color:#000,stroke:#000,stroke-width:1px
+    style C fill:#e8f5e9,stroke:#4caf50,stroke-width:3px,color:#000
+    style D fill:#fff4e1,color:#000,stroke:#000,stroke-width:1px
+    style E fill:#f3e5f5,color:#000,stroke:#000,stroke-width:1px
+    style F fill:#ffe1f5,color:#000,stroke:#000,stroke-width:1px
+    style G fill:#d1ecf1,color:#000,stroke:#000,stroke-width:1px
+    style H fill:#f8d7da,color:#000,stroke:#000,stroke-width:1px
+    style I fill:#d4edda,color:#000,stroke:#000,stroke-width:1px
 ```
+
+### Backend Architecture Deep Dive
+
+The backend is built on a microservices-inspired architecture within a monolithic structure, featuring:
+
+**Multi-Agent LLM System (`app/agent/`)**:
+- **Base Agent Framework**: Abstract base class implementing common LLM interaction patterns, prompt engineering, and response parsing
+- **Specialized Agents**: Curator Agent for relevance scoring, Digest Agent for content summarization, Email Agent for personalized content generation
+- **Advanced Prompt Engineering**: Context-aware prompts with user profile integration and multi-turn conversations
+- **Error Handling & Fallbacks**: Robust error recovery with retry mechanisms and alternative processing paths
+
+**Asynchronous Data Pipeline (`app/pipeline/`)**:
+- **Scheduler Module**: Cron-based orchestration with timezone-aware scheduling and manual trigger capabilities
+- **Dependency Management**: Complex task dependencies with parallel processing and sequential constraints
+- **Monitoring & Logging**: Comprehensive logging with structured data for debugging and performance analysis
+
+**Database Layer (`app/database/`)**:
+- **Hybrid Storage**: PostgreSQL for relational data (users, articles, digests), MongoDB for unstructured content and metadata
+- **ORM & Repository Pattern**: SQLAlchemy with custom repository layer for data access abstraction
+- **Migration & Schema Management**: Automated table creation with environment-specific configurations
+- **Connection Pooling**: Optimized database connections with health checks and failover
+
+**API Layer (`app/api/`)**:
+- **FastAPI Framework**: High-performance async APIs with automatic OpenAPI documentation
+- **Authentication & Authorization**: JWT-based auth with role-based access control
+- **Billing Integration**: Razorpay payment gateway integration with webhook handling
+- **Security**: Input validation with Pydantic, CORS configuration, and secure headers
+
+**Scrapers Module (`app/scrapers/`)**:
+- **Registry Pattern**: Dynamic scraper registration with factory pattern for extensibility
+- **Rate Limiting & Proxies**: Webshare proxy integration for YouTube API bypass
+- **Content Parsing**: Advanced HTML parsing with BeautifulSoup and feedparser for RSS
+- **Error Resilience**: Retry logic with exponential backoff and circuit breaker patterns
+
+**Services Layer (`app/services/`)**:
+- **Modular Processing**: Separate services for each content type with shared base classes
+- **Content Transformation**: HTML to Markdown conversion, video transcript extraction, LLM-powered summarization
+- **Email Generation**: Template-based email creation with personalization and duplicate prevention
 
 ## How It Works
 
-### Pipeline Flow
+### Advanced Pipeline Flow
 
-1. **Scraping** (`app/runner.py`)
-   - Runs all registered scrapers
-   - Fetches articles/videos from configured sources
-   - Saves raw content to database
+The system implements a sophisticated asynchronous pipeline with the following complex stages:
 
-2. **Processing** (`app/services/process_*.py`)
-   - **Anthropic**: Converts HTML articles to markdown
-   - **YouTube**: Fetches video transcripts
-   - **Digests**: Generates summaries using LLM
+1. **Intelligent Scraping** (`app/runner.py`)
+   - **Concurrent Execution**: Multi-threaded scraper execution with semaphore-based rate limiting
+   - **Dynamic Registry**: Runtime scraper registration supporting plugin-like extensibility
+   - **Content Deduplication**: Advanced hashing algorithms to prevent duplicate content ingestion
+   - **Error Recovery**: Circuit breaker pattern with exponential backoff for API failures
 
-3. **Curation** (`app/services/process_curator.py`)
-   - Ranks digests by relevance to user profile
-   - Uses LLM to score and rank articles
+2. **Multi-Modal Content Processing** (`app/services/process_*.py`)
+   - **Anthropic Processing**: HTML parsing with BeautifulSoup, content extraction, and LLM-powered markdown conversion
+   - **YouTube Processing**: Video metadata extraction, transcript fetching with proxy rotation, and timestamp alignment
+   - **Digest Generation**: Multi-agent LLM collaboration for comprehensive article summarization with key insights extraction
 
-4. **Email Generation** (`app/services/process_email.py`)
-   - Creates personalized email digest
-   - Selects top N articles
-   - Generates introduction and formats content
-   - Marks digests as sent to prevent duplicates
+3. **AI-Powered Curation** (`app/services/process_curator.py`)
+   - **User Profile Analysis**: NLP-based profile parsing with interest vector generation
+   - **Relevance Scoring**: Advanced LLM ranking using cosine similarity and contextual embeddings
+   - **Personalization Engine**: Dynamic content filtering based on user preferences and reading history
 
-5. **Delivery** (`app/services/email.py`)
-   - Sends HTML email via Gmail SMTP
+4. **Intelligent Email Generation** (`app/services/process_email.py`)
+   - **Content Selection Algorithm**: Weighted ranking combining relevance scores and recency
+   - **LLM-Powered Composition**: Context-aware email drafting with personalized introductions
+   - **Template Rendering**: HTML email generation with responsive design and accessibility features
+   - **Duplicate Prevention**: Sophisticated tracking system preventing re-delivery of sent content
 
-### Daily Pipeline
+5. **Reliable Delivery System** (`app/services/email.py`)
+   - **SMTP Integration**: Secure Gmail SMTP with OAuth2 authentication and connection pooling
+   - **Delivery Tracking**: Comprehensive logging and retry mechanisms for failed deliveries
+   - **Bounce Handling**: Automated bounce processing and unsubscribe management
 
-The `run_daily_pipeline()` function orchestrates all steps:
-- Ensures database tables exist
-- Scrapes all sources
-- Processes content (markdown, transcripts)
-- Creates digests
-- Sends email
+### Daily Pipeline Orchestration
+
+The `run_daily_pipeline()` function implements enterprise-grade workflow orchestration:
+- **Environment Detection**: Automatic configuration switching between LOCAL and PRODUCTION
+- **Database Health Checks**: Pre-flight validation ensuring data integrity
+- **Transactional Processing**: ACID-compliant operations with rollback capabilities
+- **Monitoring Integration**: Structured logging with performance metrics collection
+- **Graceful Degradation**: Partial failure handling allowing pipeline continuation
 
 ## Project Structure
 
 ```
-app/
-├── agent/              # LLM agents for processing
-│   ├── base.py        # Base agent class
-│   ├── curator_agent.py   # Article ranking
-│   ├── digest_agent.py    # Summary generation
-│   └── email_agent.py     # Email content generation
-├── config.py          # Configuration (YouTube channels)
-├── database/          # Database layer
-│   ├── models.py      # SQLAlchemy models
-│   ├── repository.py # Data access layer
-│   └── connection.py  # DB connection & environment
-├── profiles/          # User profile configuration
-│   └── user_profile.py
-├── scrapers/          # Content scrapers
-│   ├── base.py        # Base scraper for RSS feeds
-│   ├── anthropic.py   # Anthropic RSS scraper
-│   ├── openai.py      # OpenAI RSS scraper
-│   └── youtube.py     # YouTube channel scraper
-├── services/          # Processing services
-│   ├── base.py        # Base process service
-│   ├── process_anthropic.py
-│   ├── process_youtube.py
-│   ├── process_digest.py
-│   ├── process_curator.py
-│   ├── process_email.py
-│   └── email.py       # Email sending
-├── daily_runner.py    # Main pipeline orchestrator
-└── runner.py          # Scraper registry & execution
+├── app/                          # Backend Application
+│   ├── agent/                    # Multi-Agent LLM System
+│   │   ├── base.py              # Abstract Agent Base Class
+│   │   ├── curator_agent.py     # Content Relevance Scoring
+│   │   ├── digest_agent.py      # Article Summarization
+│   │   └── email_agent.py       # Email Content Generation
+│   ├── api/                     # FastAPI RESTful APIs
+│   │   ├── auth.py              # Authentication Endpoints
+│   │   ├── billing.py           # Payment Integration
+│   │   ├── channels.py          # Content Source Management
+│   │   ├── deps.py              # Dependency Injection
+│   │   ├── profile.py           # User Profile APIs
+│   │   ├── schemas.py           # Pydantic Data Models
+│   │   ├── security.py          # Security Utilities
+│   │   └── server.py            # FastAPI Application
+│   ├── database/                # Data Layer Architecture
+│   │   ├── models.py            # SQLAlchemy ORM Models
+│   │   ├── repository.py        # Repository Pattern Implementation
+│   │   ├── connection.py        # Database Connection Management
+│   │   ├── mongo.py             # MongoDB Integration
+│   │   └── create_tables.py     # Schema Migration Scripts
+│   ├── pipeline/                # Workflow Orchestration
+│   │   └── scheduler.py         # Cron Job Management
+│   ├── profiles/                # User Personalization
+│   │   └── user_profile.py      # Profile Configuration
+│   ├── scrapers/                # Content Acquisition Layer
+│   │   ├── base.py              # Base Scraper Framework
+│   │   ├── anthropic.py         # Anthropic RSS Scraper
+│   │   ├── openai.py            # OpenAI RSS Scraper
+│   │   └── youtube.py           # YouTube Channel Scraper
+│   ├── services/                # Business Logic Services
+│   │   ├── base.py              # Service Base Classes
+│   │   ├── process_anthropic.py # Content Processing
+│   │   ├── process_youtube.py   # Video Processing
+│   │   ├── process_digest.py    # Summarization Service
+│   │   ├── process_curator.py   # Curation Engine
+│   │   ├── process_email.py     # Email Generation
+│   │   └── email.py             # SMTP Delivery Service
+│   ├── config.py                # Configuration Management
+│   ├── daily_runner.py          # Pipeline Orchestrator
+│   └── runner.py                # Scraper Registry
+├── frontend/                     # Next.js Web Application
+│   ├── app/                     # App Router Structure
+│   │   ├── auth/                # Authentication Pages
+│   │   ├── dashboard/           # User Dashboard
+│   │   ├── assets/              # Static Assets
+│   │   └── components/          # Reusable UI Components
+│   ├── components/              # Component Library
+│   │   ├── landing/             # Landing Page Components
+│   │   └── ui/                  # Design System
+│   ├── public/                  # Static Files
+│   ├── package.json             # Frontend Dependencies
+│   └── next.config.ts           # Next.js Configuration
+├── docker/                      # Containerization
+│   └── docker-compose.yml       # Multi-Container Setup
+├── docs/                        # Documentation
+├── pyproject.toml               # Python Project Configuration             
+└── requirements.txt             # Python Dependencies
 ```
 
 ## Adding New Scrapers
@@ -147,6 +238,40 @@ class CustomScraper:
         # Your custom scraping logic
         pass
 ```
+
+## Technical Challenges Overcome
+
+This project addresses several complex engineering challenges that demonstrate advanced software development skills:
+
+### Multi-Agent LLM Coordination
+- **Prompt Engineering**: Designing context-aware prompts that maintain conversation state across multiple LLM calls
+- **Agent Communication**: Implementing inter-agent data flow with error propagation and fallback mechanisms
+- **Cost Optimization**: Balancing LLM API usage with caching strategies and intelligent prompt compression
+- **Response Parsing**: Robust parsing of LLM outputs with validation and error recovery
+
+### Asynchronous Data Pipeline Complexity
+- **Dependency Management**: Handling complex task dependencies in an async environment with proper error isolation
+- **Resource Contention**: Managing database connections, API rate limits, and memory usage across concurrent operations
+- **State Management**: Tracking pipeline progress and implementing resumable operations for long-running tasks
+- **Monitoring & Debugging**: Implementing comprehensive logging and metrics for distributed async workflows
+
+### Hybrid Database Architecture
+- **Data Consistency**: Maintaining referential integrity across PostgreSQL and MongoDB with eventual consistency patterns
+- **Query Optimization**: Designing efficient queries that leverage both relational and document database strengths
+- **Migration Strategies**: Handling schema evolution and data migration between different database systems
+- **Backup & Recovery**: Implementing robust backup strategies for hybrid data stores
+
+### Production Deployment Challenges
+- **Environment Configuration**: Managing complex environment variables and secrets across multiple deployment stages
+- **Cron Job Reliability**: Ensuring scheduled tasks execute reliably in cloud environments with proper error handling
+- **Scalability Considerations**: Designing for horizontal scaling with stateless services and externalized state management
+- **Security Hardening**: Implementing comprehensive security measures including input validation, CORS, and secure headers
+
+### Full-Stack Integration Complexity
+- **API Design**: Creating RESTful APIs with proper HTTP status codes, pagination, and hypermedia links
+- **Frontend-Backend Sync**: Maintaining data consistency between Next.js frontend and FastAPI backend
+- **Authentication Flow**: Implementing secure JWT-based authentication with refresh token rotation
+- **Real-Time Updates**: Managing state synchronization between client and server for dynamic user interfaces
 
 ## Setup
 
@@ -217,18 +342,6 @@ uv run python -m app.services.process_curator
 uv run python -m app.services.process_email
 ```
 
-## Deployment
-
-### Render.com
-
-The project is configured for deployment on Render.com:
-
-1. **Database**: PostgreSQL service (auto-configured)
-2. **Cron Job**: Scheduled daily execution via `render.yaml`
-3. **Environment**: Automatically detected as PRODUCTION when `DATABASE_URL` contains "render.com" (no manual setting needed)
-
-See `RENDER_SETUP.md` for detailed deployment instructions.
-
 ### Docker
 
 Build and run:
@@ -239,21 +352,58 @@ docker run --env-file .env ai-news-aggregator
 
 ## Key Features
 
-- **Modular Architecture**: Base classes make it easy to extend
-- **Scraper Registry**: Add new sources with minimal code
-- **LLM-Powered**: Uses Groq API for summarization and curation
-- **Personalized**: User profile-based ranking
-- **Duplicate Prevention**: Tracks sent digests
-- **Environment Aware**: Supports LOCAL and PRODUCTION environments
+### Advanced Backend Capabilities
+- **Multi-Agent LLM Architecture**: Sophisticated agent system with specialized roles for content processing, curation, and personalization
+- **Asynchronous Pipeline Orchestration**: Complex workflow management with dependency resolution and parallel execution
+- **Hybrid Database Design**: Optimized PostgreSQL for structured data and MongoDB for flexible content storage
+- **Enterprise-Grade APIs**: FastAPI-based RESTful services with comprehensive authentication, validation, and documentation
+- **Scalable Scraping Framework**: Registry-based scraper system with rate limiting, proxy rotation, and error recovery
+- **Intelligent Content Processing**: Multi-modal content handling with LLM-powered summarization and markdown conversion
+
+### Full-Stack Integration
+- **Modern Web Frontend**: Next.js application with responsive design and real-time user interactions
+- **Secure Authentication**: JWT-based auth system with role-based access control and secure password handling
+- **Payment Integration**: Razorpay gateway integration with webhook processing and billing management
+- **Real-Time Dashboard**: User interface for managing profiles, channels, and billing information
+
+### Production-Ready Features
+- **Environment-Aware Configuration**: Automatic detection and configuration for LOCAL/PRODUCTION environments
+- **Containerized Deployment**: Docker-based deployment with optimized images and multi-container orchestration
+- **Scheduled Automation**: Cron-based daily pipeline execution with timezone support and manual triggers
+- **Comprehensive Monitoring**: Structured logging, error tracking, and performance metrics collection
+- **Duplicate Prevention**: Advanced content deduplication algorithms preventing redundant processing
+- **Email Delivery Reliability**: SMTP integration with retry mechanisms and bounce handling
 
 ## Technology Stack
 
-- **Python 3.12+**: Core language
-- **PostgreSQL**: Database
-- **SQLAlchemy**: ORM
-- **Pydantic**: Data validation
-- **Groq API**: LLM processing (fast inference with llama-3.3-70b-versatile)
-- **feedparser**: RSS parsing
-- **youtube-transcript-api**: Video transcripts
-- **UV**: Package management
+### Backend Technologies
+- **Python 3.12+**: Core language with advanced async/await patterns and type hints
+- **FastAPI**: High-performance async web framework with automatic API documentation
+- **SQLAlchemy 2.0**: Modern ORM with async support and advanced query optimization
+- **Pydantic v2**: Data validation and serialization with JSON Schema generation
+- **PostgreSQL**: Relational database with advanced indexing and JSONB support
+- **MongoDB**: NoSQL database for unstructured content storage and flexible schemas
+- **Groq API**: Ultra-fast LLM inference with Llama-3.3-70b-versatile model
+
+### Frontend Technologies
+- **Next.js 14**: React framework with App Router and server-side rendering
+- **TypeScript**: Type-safe JavaScript with advanced type inference
+- **Tailwind CSS**: Utility-first CSS framework for responsive design
+- **ESLint**: Code linting and formatting with custom rules
+
+### Infrastructure & DevOps
+- **Docker**: Containerization with multi-stage builds and optimized images
+- **Github-actions**: Cloud deployment platform with managed cron jobs
+- **Neon-postgreSQL**: Cloud deployment platform with managed PostgreSQL(Neon)
+- **Gmail SMTP**: Secure email delivery with OAuth2 authentication
+- **Webshare.io**: Proxy rotation for API rate limiting bypass
+
+### Libraries & Tools
+- **feedparser**: Robust RSS/Atom feed parsing with error handling
+- **youtube-transcript-api**: YouTube video transcript extraction with proxy support
+- **BeautifulSoup4**: Advanced HTML parsing and content extraction
+- **Jinja2**: Template engine for dynamic email generation
+- **python-multipart**: File upload handling for API endpoints
+- **passlib**: Password hashing with bcrypt for security
+- **python-jose**: JWT token management for authentication
 
